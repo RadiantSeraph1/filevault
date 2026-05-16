@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Download, FileArchive, FileText, MessageSquare, Presentation, Upload } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -14,6 +14,7 @@ type FilesResponse = {
 const previewableTextExtensions = new Set(["md", "markdown", "txt", "csv", "json", "log"]);
 const officeDocExtensions = new Set(["docx"]);
 const presentationExtensions = new Set(["ppt", "pptx"]);
+const REFRESH_INTERVAL_MS = 5000;
 
 function formatBytes(size: number) {
   if (size < 1024) return `${size} B`;
@@ -46,19 +47,66 @@ export function FileRoom({
   const [selectedId, setSelectedId] = useState<string | null>(initialFiles[0]?.id ?? null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const refreshSequence = useRef(0);
 
   const selectedFile = useMemo(
     () => files.find((file) => file.id === selectedId) ?? files[0] ?? null,
     [files, selectedId],
   );
 
-  async function loadFiles() {
-    const response = await fetch("/api/files", { cache: "no-store" });
-    if (!response.ok) throw new Error("Could not load files.");
-    const payload = (await response.json()) as FilesResponse;
-    setFiles(payload.files);
-    setSelectedId((current) => current ?? payload.files[0]?.id ?? null);
-  }
+  const loadFiles = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
+    const sequence = ++refreshSequence.current;
+
+    try {
+      const response = await fetch("/api/files", { cache: "no-store" });
+      if (!response.ok) throw new Error("Could not load files.");
+      const payload = (await response.json()) as FilesResponse;
+
+      if (sequence !== refreshSequence.current) {
+        return;
+      }
+
+      setFiles(payload.files);
+      setSelectedId((current) => {
+        if (!payload.files.length) return null;
+        if (current && payload.files.some((file) => file.id === current)) {
+          return current;
+        }
+        return payload.files[0].id;
+      });
+
+      if (silent) {
+        setError(null);
+      }
+    } catch (loadError) {
+      if (!silent) {
+        setError(loadError instanceof Error ? loadError.message : "Could not load files.");
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        void loadFiles({ silent: true });
+      }
+    }, REFRESH_INTERVAL_MS);
+
+    function refreshWhenVisible() {
+      if (document.visibilityState === "visible") {
+        void loadFiles({ silent: true });
+      }
+    }
+
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [loadFiles]);
 
   async function uploadFile(formData: FormData) {
     setIsUploading(true);
@@ -131,7 +179,7 @@ export function FileRoom({
 
         <section className="min-h-[720px] border border-[#d9ded6] bg-white">
           {selectedFile ? (
-            <FileWorkspace file={selectedFile} onCommentSaved={loadFiles} />
+            <FileWorkspace file={selectedFile} onCommentSaved={() => loadFiles()} />
           ) : (
             <EmptyWorkspace />
           )}
