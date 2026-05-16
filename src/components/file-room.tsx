@@ -8,6 +8,7 @@ import {
   Folder,
   Image as ImageIcon,
   Maximize2,
+  MessageSquare,
   X,
   Presentation,
   Search,
@@ -513,6 +514,8 @@ function FullScreenViewer({
   onClose: () => void;
   onCommentSaved: () => Promise<void>;
 }) {
+  const [commentsOpen, setCommentsOpen] = useState(false);
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[#f7f7f2] text-[#1d2328]">
       <header className="flex min-h-16 flex-col gap-3 border-b border-[#d9ded6] bg-white px-4 py-3 md:flex-row md:items-center md:justify-between">
@@ -523,7 +526,7 @@ function FullScreenViewer({
             {file.extension.toUpperCase()} - {formatBytes(file.size)} - uploaded {formatTimestamp(file.uploadedAt)} UTC
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0">
+        <div className="grid grid-cols-3 gap-2 sm:flex sm:shrink-0">
           <a
             className="inline-flex h-10 items-center justify-center gap-2 rounded-sm border border-[#cfd7cf] px-3 text-sm font-semibold text-[#173f35] transition hover:bg-[#f1f5ef]"
             href={file.url}
@@ -534,6 +537,14 @@ function FullScreenViewer({
             Original
           </a>
           <button
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-sm border border-[#cfd7cf] px-3 text-sm font-semibold text-[#173f35] transition hover:bg-[#f1f5ef]"
+            onClick={() => setCommentsOpen((current) => !current)}
+            type="button"
+          >
+            <MessageSquare size={16} />
+            Comments
+          </button>
+          <button
             className="inline-flex h-10 items-center justify-center gap-2 rounded-sm bg-[#173f35] px-3 text-sm font-semibold text-white transition hover:bg-[#0f2d26]"
             onClick={onClose}
             type="button"
@@ -543,11 +554,23 @@ function FullScreenViewer({
           </button>
         </div>
       </header>
-      <main className="grid min-h-0 flex-1 overflow-auto lg:grid-cols-[minmax(0,1fr)_360px]">
-        <section className="min-h-0 overflow-auto bg-white">
+      <main className={`grid min-h-0 flex-1 overflow-hidden ${commentsOpen ? "lg:grid-cols-[minmax(0,1fr)_340px]" : "lg:grid-cols-1"}`}>
+        <section className="relative z-0 min-h-0 overflow-auto bg-white">
           <DocumentPreview key={file.id} file={file} fullScreen />
         </section>
-        <aside className="min-h-[360px] border-t border-[#d9ded6] bg-white lg:min-h-0 lg:border-l lg:border-t-0">
+        {commentsOpen ? (
+          <button
+            aria-label="Close comments"
+            className="fixed inset-0 z-10 bg-black/20 lg:hidden"
+            onClick={() => setCommentsOpen(false)}
+            type="button"
+          />
+        ) : null}
+        <aside
+          className={`fixed inset-x-0 bottom-0 z-20 max-h-[70vh] overflow-auto border-t border-[#d9ded6] bg-white shadow-[0_-12px_30px_rgba(0,0,0,0.12)] transition-transform lg:static lg:z-auto lg:max-h-none lg:min-h-0 lg:border-l lg:border-t-0 lg:shadow-none ${
+            commentsOpen ? "translate-y-0" : "translate-y-full lg:hidden"
+          }`}
+        >
           <CommentPanel file={file} onCommentSaved={onCommentSaved} />
         </aside>
       </main>
