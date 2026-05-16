@@ -201,23 +201,23 @@ export function FileRoom({
   return (
     <div className="min-h-screen bg-[#f7f7f2] text-[#1d2328]">
       <header className="border-b border-[#d9ded6] bg-[#fbfbf8]">
-        <div className="mx-auto flex max-w-7xl flex-col gap-5 px-5 py-6 md:flex-row md:items-end md:justify-between">
+        <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-5 sm:px-5 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-sm font-medium uppercase tracking-[0.16em] text-[#597368]">File Vault</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-normal text-[#111816] md:text-4xl">
+            <h1 className="mt-2 text-2xl font-semibold tracking-normal text-[#111816] sm:text-3xl md:text-4xl">
               Read-only document storage
             </h1>
-            <p className="mt-2 text-sm text-[#66736c]">
+            <p className="mt-2 break-words text-sm text-[#66736c]">
               Signed in as {session.email}
               {session.role === "owner" ? " - owner" : ""}
             </p>
           </div>
-          <div className="flex flex-col gap-3">
+          <div className="flex w-full flex-col gap-3 md:w-auto">
             <UploadPanel isUploading={isUploading} onUpload={uploadFile} />
-            <div className="flex justify-end gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
               {session.role === "owner" ? (
                 <a
-                  className="inline-flex h-10 items-center rounded-sm border border-[#cfd7cf] px-3 text-sm font-semibold text-[#173f35] transition hover:bg-[#f1f5ef]"
+                  className="inline-flex h-10 items-center justify-center rounded-sm border border-[#cfd7cf] px-3 text-sm font-semibold text-[#173f35] transition hover:bg-[#f1f5ef]"
                   href="/admin"
                 >
                   Admin
@@ -229,8 +229,8 @@ export function FileRoom({
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-7xl gap-5 px-5 py-5 xl:grid-cols-[220px_minmax(0,1fr)_380px]">
-        <aside className="border border-[#d9ded6] bg-white">
+      <main className="mx-auto grid max-w-7xl gap-4 px-4 py-4 sm:px-5 sm:py-5 xl:grid-cols-[220px_minmax(0,1fr)_380px]">
+        <aside className="min-w-0 border border-[#d9ded6] bg-white">
           <div className="flex h-14 items-center gap-2 border-b border-[#e4e7df] px-4">
             <Folder size={17} className="text-[#597368]" />
             <span className="text-sm font-semibold text-[#2d3631]">Vault</span>
@@ -242,7 +242,7 @@ export function FileRoom({
           />
         </aside>
 
-        <section className="min-h-[720px] border border-[#d9ded6] bg-white">
+        <section className="min-h-[420px] min-w-0 border border-[#d9ded6] bg-white xl:min-h-[720px]">
           <div className="flex flex-col gap-3 border-b border-[#e4e7df] px-4 py-3 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-lg font-semibold text-[#111816]">Files</h2>
@@ -269,7 +269,7 @@ export function FileRoom({
           />
         </section>
 
-        <aside className="min-h-[720px] border border-[#d9ded6] bg-white">
+        <aside className="min-h-[420px] min-w-0 border border-[#d9ded6] bg-white xl:min-h-[720px]">
           {selectedFile ? (
             <FileInspector
               file={selectedFile}
@@ -308,16 +308,16 @@ function UploadPanel({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex w-full max-w-xl gap-2 rounded-md border border-[#cfd7cf] bg-white p-2">
+    <form onSubmit={handleSubmit} className="grid w-full gap-2 rounded-md border border-[#cfd7cf] bg-white p-2 sm:max-w-xl sm:grid-cols-[minmax(0,1fr)_auto]">
       <input
-        className="min-w-0 flex-1 rounded-sm border border-[#dfe4dc] px-3 py-2 text-sm file:mr-3 file:rounded-sm file:border-0 file:bg-[#173f35] file:px-3 file:py-2 file:text-sm file:font-medium file:text-white"
+        className="min-w-0 rounded-sm border border-[#dfe4dc] px-3 py-2 text-sm file:mr-3 file:rounded-sm file:border-0 file:bg-[#173f35] file:px-3 file:py-2 file:text-sm file:font-medium file:text-white"
         name="file"
         type="file"
         required
         accept=".doc,.docx,.ppt,.pptx,.md,.markdown,.txt,.pdf,.png,.jpg,.jpeg,.csv,.json"
       />
       <button
-        className="inline-flex h-11 items-center gap-2 rounded-sm bg-[#173f35] px-4 text-sm font-semibold text-white transition hover:bg-[#0f2d26] disabled:cursor-not-allowed disabled:bg-[#8aa197]"
+        className="inline-flex h-11 items-center justify-center gap-2 rounded-sm bg-[#173f35] px-4 text-sm font-semibold text-white transition hover:bg-[#0f2d26] disabled:cursor-not-allowed disabled:bg-[#8aa197]"
         type="submit"
         disabled={isUploading}
       >
@@ -338,7 +338,7 @@ function FolderRail({
   onSelect: (category: FileCategory) => void;
 }) {
   return (
-    <div className="p-2">
+    <div className="flex max-w-full gap-2 overflow-x-auto p-2 xl:block xl:space-y-0 xl:overflow-visible">
       {categories.map((item) => {
         const count =
           item.id === "all"
@@ -348,7 +348,7 @@ function FolderRail({
 
         return (
           <button
-            className={`flex h-10 w-full items-center justify-between rounded-sm px-3 text-left text-sm transition ${
+            className={`flex h-10 min-w-[150px] items-center justify-between gap-3 rounded-sm px-3 text-left text-sm transition xl:w-full ${
               isActive ? "bg-[#eaf1ec] font-semibold text-[#173f35]" : "text-[#36413b] hover:bg-[#f7f8f3]"
             }`}
             key={item.id}
@@ -383,7 +383,41 @@ function FileBrowserTable({
   }
 
   return (
-    <div className="overflow-x-auto">
+    <>
+      <div className="divide-y divide-[#edf0e9] md:hidden">
+        {files.map((file) => {
+          const Icon = fileIcon(file);
+          const isSelected = selectedId === file.id;
+
+          return (
+            <button
+              className={`grid w-full grid-cols-[40px_minmax(0,1fr)] gap-3 px-4 py-3 text-left transition ${
+                isSelected ? "bg-[#eaf1ec]" : "hover:bg-[#f7f8f3]"
+              }`}
+              key={file.id}
+              onClick={() => {
+                onSelect(file.id);
+                onOpen(file.id);
+              }}
+              type="button"
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-sm bg-[#dfe7e3] text-[#173f35]">
+                <Icon size={18} />
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate font-semibold text-[#1d2328]">{file.name}</span>
+                <span className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[#66736c]">
+                  <span>{file.extension.toUpperCase()}</span>
+                  <span>{formatBytes(file.size)}</span>
+                  <span>{formatTimestamp(file.uploadedAt)}</span>
+                  <span>{file.comments.length} comments</span>
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="hidden overflow-x-auto md:block">
       <table className="w-full min-w-[700px] border-collapse text-sm">
         <thead>
           <tr className="border-b border-[#edf0e9] text-left text-xs uppercase tracking-[0.12em] text-[#66736c]">
@@ -428,7 +462,8 @@ function FileBrowserTable({
           })}
         </tbody>
       </table>
-    </div>
+      </div>
+    </>
   );
 }
 
@@ -442,7 +477,7 @@ function FileInspector({
   onOpen: () => void;
 }) {
   return (
-    <div className="flex min-h-[720px] flex-col">
+    <div className="flex min-h-[420px] flex-col xl:min-h-[720px]">
       <div className="border-b border-[#e4e7df]">
         <div className="flex flex-col gap-3 px-4 py-4">
           <div className="min-w-0">
@@ -461,7 +496,7 @@ function FileInspector({
           </button>
         </div>
       </div>
-      <div className="max-h-[360px] overflow-auto border-b border-[#e4e7df]">
+      <div className="max-h-[300px] overflow-auto border-b border-[#e4e7df] xl:max-h-[360px]">
         <DocumentPreview key={file.id} file={file} compact />
       </div>
       <CommentPanel file={file} onCommentSaved={onCommentSaved} />
@@ -488,7 +523,7 @@ function FullScreenViewer({
             {file.extension.toUpperCase()} - {formatBytes(file.size)} - uploaded {formatTimestamp(file.uploadedAt)} UTC
           </p>
         </div>
-        <div className="flex shrink-0 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0">
           <a
             className="inline-flex h-10 items-center justify-center gap-2 rounded-sm border border-[#cfd7cf] px-3 text-sm font-semibold text-[#173f35] transition hover:bg-[#f1f5ef]"
             href={file.url}
@@ -508,11 +543,11 @@ function FullScreenViewer({
           </button>
         </div>
       </header>
-      <main className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <main className="grid min-h-0 flex-1 overflow-auto lg:grid-cols-[minmax(0,1fr)_360px]">
         <section className="min-h-0 overflow-auto bg-white">
           <DocumentPreview key={file.id} file={file} fullScreen />
         </section>
-        <aside className="min-h-0 border-l border-[#d9ded6] bg-white">
+        <aside className="min-h-[360px] border-t border-[#d9ded6] bg-white lg:min-h-0 lg:border-l lg:border-t-0">
           <CommentPanel file={file} onCommentSaved={onCommentSaved} />
         </aside>
       </main>
@@ -569,7 +604,7 @@ function DocumentPreview({
     if (file.url.startsWith("http")) {
       return (
         <iframe
-          className={`${fullScreen ? "h-[calc(100vh-5rem)]" : "h-[650px]"} w-full bg-[#f8faf7]`}
+          className={`${fullScreen ? "h-[70vh] lg:h-[calc(100vh-5rem)]" : "h-[650px]"} w-full bg-[#f8faf7]`}
           title={file.name}
           src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(file.url)}`}
         />
@@ -581,15 +616,15 @@ function DocumentPreview({
 
   if (file.type.startsWith("image/")) {
     return (
-      <div className={`flex items-center justify-center bg-[#f8faf7] p-6 ${fullScreen ? "min-h-[calc(100vh-5rem)]" : compact ? "min-h-[320px]" : "min-h-[650px]"}`}>
+      <div className={`flex items-center justify-center bg-[#f8faf7] p-4 sm:p-6 ${fullScreen ? "min-h-[70vh] lg:min-h-[calc(100vh-5rem)]" : compact ? "min-h-[280px] sm:min-h-[320px]" : "min-h-[650px]"}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className={`${fullScreen ? "max-h-[calc(100vh-8rem)]" : "max-h-[610px]"} max-w-full border border-[#e4e7df] bg-white object-contain`} src={file.url} alt={file.name} />
+        <img className={`${fullScreen ? "max-h-[65vh] lg:max-h-[calc(100vh-8rem)]" : "max-h-[610px]"} max-w-full border border-[#e4e7df] bg-white object-contain`} src={file.url} alt={file.name} />
       </div>
     );
   }
 
   if (file.type === "application/pdf") {
-    return <iframe className={`${fullScreen ? "h-[calc(100vh-5rem)]" : compact ? "h-[320px]" : "h-[650px]"} w-full bg-[#f8faf7]`} title={file.name} src={file.url} />;
+    return <iframe className={`${fullScreen ? "h-[70vh] lg:h-[calc(100vh-5rem)]" : compact ? "h-[320px]" : "h-[650px]"} w-full bg-[#f8faf7]`} title={file.name} src={file.url} />;
   }
 
   if (!content) {
@@ -599,18 +634,18 @@ function DocumentPreview({
   if (officeDocExtensions.has(file.extension)) {
     return (
       <article
-        className={`document-body ${fullScreen ? "mx-auto max-w-5xl px-10 py-8" : compact ? "px-4 py-4 text-sm" : "px-6 py-5"}`}
+        className={`document-body ${fullScreen ? "mx-auto max-w-5xl px-4 py-5 sm:px-8 lg:px-10 lg:py-8" : compact ? "px-4 py-4 text-sm" : "px-6 py-5"}`}
         dangerouslySetInnerHTML={{ __html: content }}
       />
     );
   }
 
   if (file.extension === "json") {
-    return <pre className={`m-0 overflow-auto bg-[#f8faf7] p-5 font-mono text-sm text-[#24302a] ${fullScreen ? "min-h-[calc(100vh-5rem)]" : compact ? "min-h-[320px]" : "min-h-[650px]"}`}>{content}</pre>;
+    return <pre className={`m-0 overflow-auto bg-[#f8faf7] p-4 font-mono text-sm text-[#24302a] sm:p-5 ${fullScreen ? "min-h-[70vh] lg:min-h-[calc(100vh-5rem)]" : compact ? "min-h-[320px]" : "min-h-[650px]"}`}>{content}</pre>;
   }
 
   return (
-    <article className={`document-body ${fullScreen ? "mx-auto max-w-5xl px-10 py-8" : compact ? "px-4 py-4 text-sm" : "px-6 py-5"}`}>
+    <article className={`document-body ${fullScreen ? "mx-auto max-w-5xl px-4 py-5 sm:px-8 lg:px-10 lg:py-8" : compact ? "px-4 py-4 text-sm" : "px-6 py-5"}`}>
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
     </article>
   );
@@ -618,7 +653,7 @@ function DocumentPreview({
 
 function PreviewMessage({ message, compact = false }: { message: string; compact?: boolean }) {
   return (
-    <div className={`flex items-center justify-center bg-[#f8faf7] px-6 text-center text-sm text-[#66736c] ${compact ? "min-h-[320px]" : "min-h-[650px]"}`}>
+    <div className={`flex items-center justify-center bg-[#f8faf7] px-6 text-center text-sm text-[#66736c] ${compact ? "min-h-[280px] sm:min-h-[320px]" : "min-h-[650px]"}`}>
       {message}
     </div>
   );
@@ -710,7 +745,7 @@ function CommentPanel({ file, onCommentSaved }: { file: StoredFile; onCommentSav
 
 function EmptyWorkspace() {
   return (
-    <div className="flex min-h-[720px] items-center justify-center bg-[#f8faf7] px-6 text-center">
+    <div className="flex min-h-[420px] items-center justify-center bg-[#f8faf7] px-6 text-center xl:min-h-[720px]">
       <div>
         <FileText className="mx-auto text-[#597368]" size={34} />
         <p className="mt-3 text-sm text-[#66736c]">

@@ -87,7 +87,60 @@ export function UserManagement({
       </div>
       {error ? <p className="auth-error">{error}</p> : null}
       {status ? <p className="auth-success">{status}</p> : null}
-      <div className="mt-4 overflow-x-auto">
+      <div className="mt-4 space-y-3 md:hidden">
+        {rows.map((user) => (
+          <form
+            className="border border-[#edf0e9] bg-[#fbfbf8] p-3"
+            key={user.id}
+            onSubmit={(event) => saveUser(event, user)}
+          >
+            <label className="auth-label mt-0">
+              Email
+              <input
+                className="auth-input"
+                value={user.email}
+                onChange={(event) => updateDraft(user.id, { email: event.target.value })}
+                type="email"
+              />
+            </label>
+            <label className="auth-label">
+              Role
+              <select
+                className="auth-input bg-white"
+                value={user.role}
+                onChange={(event) =>
+                  updateDraft(user.id, { role: event.target.value as UserRole })
+                }
+              >
+                <option value="member">Member</option>
+                <option value="owner">Owner</option>
+              </select>
+            </label>
+            <p className="mt-3 font-mono text-xs text-[#66736c]">
+              Created {new Date(user.createdAt).toISOString().slice(0, 10)}
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-sm bg-[#173f35] px-3 text-sm font-semibold text-white hover:bg-[#0f2d26]"
+                type="submit"
+              >
+                <Save size={15} />
+                Save
+              </button>
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-sm border border-[#e0b9ac] px-3 text-sm font-semibold text-[#8c3c26] hover:bg-[#fff4ef] disabled:cursor-not-allowed disabled:opacity-45"
+                disabled={user.id === currentUserId}
+                onClick={() => removeUser(user)}
+                type="button"
+              >
+                <Trash2 size={15} />
+                Delete
+              </button>
+            </div>
+          </form>
+        ))}
+      </div>
+      <div className="mt-4 hidden overflow-x-auto md:block">
         <table className="w-full min-w-[560px] border-collapse text-sm">
           <thead>
             <tr className="border-b border-[#dfe6de] text-left text-xs uppercase tracking-[0.12em] text-[#66736c]">
