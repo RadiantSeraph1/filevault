@@ -60,6 +60,17 @@ export async function readAuthState() {
   };
 }
 
+export type PublicUser = Pick<AuthUser, "id" | "email" | "role" | "createdAt">;
+
+export function toPublicUser(user: AuthUser): PublicUser {
+  return {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    createdAt: user.createdAt,
+  };
+}
+
 async function writeAuthState(state: AuthState) {
   await writePrivateJson(AUTH_KEY, state);
 }
@@ -211,6 +222,64 @@ export async function consumeInvite(input: {
   invite.usedAt = new Date().toISOString();
   await writeAuthState({ ...state, users: [user, ...state.users] });
   return user;
+}
+
+export async function updateUser(input: {
+  userId: string;
+  email: string;
+  role: UserRole;
+  actorId: string;
+}) {
+  const email = normalizeEmail(input.email);
+  if (!email.includes("@")) {
+    throw new Error("A valid email is required.");
+  }
+
+  const state = await readAuthState();
+  const user = state.users.find((item) => item.id === input.userId);
+  if (!user) {
+    throw new Error("User not found.");
+  }
+
+  if (state.users.some((item) => item.id !== input.userId && item.email === email)) {
+    throw new Error("Another user already has that email.");
+  }
+
+  const ownerCount = state.users.filter((item) => item.role === "owner").length;
+  if (user.role === "owner" && input.role !== "owner" && ownerCount <= 1) {
+    throw new Error("At least one owner account is required.");
+  }
+
+  if (user.id === input.actorId && input.role !== "owner") {
+    throw new Error("You cannot remove your own owner access.");
+  }
+
+  user.email = email;
+  user.role = input.role;
+  await writeAuthState(state);
+  return user;
+}
+
+export async function deleteUser(input: { userId: string; actorId: string }) {
+  if (input.userId === input.actorId) {
+    throw new Error("You cannot delete your own account.");
+  }
+
+  const state = await readAuthState();
+  const user = state.users.find((item) => item.id === input.userId);
+  if (!user) {
+    throw new Error("User not found.");
+  }
+
+  const ownerCount = state.users.filter((item) => item.role === "owner").length;
+  if (user.role === "owner" && ownerCount <= 1) {
+    throw new Error("At least one owner account is required.");
+  }
+
+  await writeAuthState({
+    ...state,
+    users: state.users.filter((item) => item.id !== input.userId),
+  });
 }
 
 export function signSession(user: Pick<AuthUser, "id" | "email" | "role">) {

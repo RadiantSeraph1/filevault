@@ -1,7 +1,16 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Download, FileArchive, FileText, MessageSquare, Presentation, Upload } from "lucide-react";
+import {
+  Download,
+  FileArchive,
+  FileText,
+  Folder,
+  Image as ImageIcon,
+  Presentation,
+  Search,
+  Upload,
+} from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { LogoutButton } from "@/components/logout-button";
@@ -15,6 +24,15 @@ const previewableTextExtensions = new Set(["md", "markdown", "txt", "csv", "json
 const officeDocExtensions = new Set(["docx"]);
 const presentationExtensions = new Set(["ppt", "pptx"]);
 const REFRESH_INTERVAL_MS = 5000;
+const categories = [
+  { id: "all", label: "All files" },
+  { id: "documents", label: "Documents" },
+  { id: "presentations", label: "Presentations" },
+  { id: "images", label: "Images" },
+  { id: "other", label: "Other" },
+] as const;
+
+type FileCategory = (typeof categories)[number]["id"];
 
 function formatBytes(size: number) {
   if (size < 1024) return `${size} B`;
@@ -32,8 +50,22 @@ function formatDate(value: string) {
 
 function fileIcon(file: StoredFile) {
   if (presentationExtensions.has(file.extension)) return Presentation;
+  if (file.type.startsWith("image/")) return ImageIcon;
   if (previewableTextExtensions.has(file.extension) || officeDocExtensions.has(file.extension)) return FileText;
   return FileArchive;
+}
+
+function fileCategory(file: StoredFile): FileCategory {
+  if (presentationExtensions.has(file.extension)) return "presentations";
+  if (file.type.startsWith("image/")) return "images";
+  if (
+    previewableTextExtensions.has(file.extension) ||
+    officeDocExtensions.has(file.extension) ||
+    file.type === "application/pdf"
+  ) {
+    return "documents";
+  }
+  return "other";
 }
 
 export function FileRoom({
@@ -45,6 +77,8 @@ export function FileRoom({
 }) {
   const [files, setFiles] = useState<StoredFile[]>(initialFiles);
   const [selectedId, setSelectedId] = useState<string | null>(initialFiles[0]?.id ?? null);
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState<FileCategory>("all");
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const refreshSequence = useRef(0);
@@ -53,6 +87,19 @@ export function FileRoom({
     () => files.find((file) => file.id === selectedId) ?? files[0] ?? null,
     [files, selectedId],
   );
+
+  const visibleFiles = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    return files.filter((file) => {
+      const matchesCategory = category === "all" || fileCategory(file) === category;
+      const matchesQuery =
+        !normalizedQuery ||
+        file.name.toLowerCase().includes(normalizedQuery) ||
+        file.extension.toLowerCase().includes(normalizedQuery);
+
+      return matchesCategory && matchesQuery;
+    });
+  }, [category, files, query]);
 
   const loadFiles = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     const sequence = ++refreshSequence.current;
@@ -163,27 +210,52 @@ export function FileRoom({
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-7xl gap-5 px-5 py-5 lg:grid-cols-[340px_minmax(0,1fr)]">
+      <main className="mx-auto grid max-w-7xl gap-5 px-5 py-5 xl:grid-cols-[220px_minmax(0,1fr)_380px]">
         <aside className="border border-[#d9ded6] bg-white">
-          <div className="flex h-14 items-center justify-between border-b border-[#e4e7df] px-4">
-            <span className="text-sm font-semibold text-[#2d3631]">Files</span>
-            <span className="font-mono text-xs text-[#66736c]">{files.length}</span>
+          <div className="flex h-14 items-center gap-2 border-b border-[#e4e7df] px-4">
+            <Folder size={17} className="text-[#597368]" />
+            <span className="text-sm font-semibold text-[#2d3631]">Vault</span>
           </div>
-          {error ? <div className="border-b border-[#edd0c8] bg-[#fff4ef] px-4 py-3 text-sm text-[#8c3c26]">{error}</div> : null}
-          <FileList
+          <FolderRail
+            active={category}
             files={files}
-            selectedId={selectedFile?.id ?? null}
-            onSelect={setSelectedId}
+            onSelect={setCategory}
           />
         </aside>
 
         <section className="min-h-[720px] border border-[#d9ded6] bg-white">
+          <div className="flex flex-col gap-3 border-b border-[#e4e7df] px-4 py-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-[#111816]">Files</h2>
+              <p className="mt-1 text-xs text-[#66736c]">
+                {visibleFiles.length} shown from {files.length} total
+              </p>
+            </div>
+            <label className="relative block w-full md:max-w-sm">
+              <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#66736c]" size={16} />
+              <input
+                className="h-10 w-full border border-[#cfd7cf] bg-white pl-9 pr-3 text-sm outline-none focus:border-[#173f35]"
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search files"
+                value={query}
+              />
+            </label>
+          </div>
+          {error ? <div className="border-b border-[#edd0c8] bg-[#fff4ef] px-4 py-3 text-sm text-[#8c3c26]">{error}</div> : null}
+          <FileBrowserTable
+            files={visibleFiles}
+            selectedId={selectedFile?.id ?? null}
+            onSelect={setSelectedId}
+          />
+        </section>
+
+        <aside className="min-h-[720px] border border-[#d9ded6] bg-white">
           {selectedFile ? (
-            <FileWorkspace file={selectedFile} onCommentSaved={() => loadFiles()} />
+            <FileInspector file={selectedFile} onCommentSaved={() => loadFiles()} />
           ) : (
             <EmptyWorkspace />
           )}
-        </section>
+        </aside>
       </main>
     </div>
   );
@@ -225,7 +297,46 @@ function UploadPanel({
   );
 }
 
-function FileList({
+function FolderRail({
+  active,
+  files,
+  onSelect,
+}: {
+  active: FileCategory;
+  files: StoredFile[];
+  onSelect: (category: FileCategory) => void;
+}) {
+  return (
+    <div className="p-2">
+      {categories.map((item) => {
+        const count =
+          item.id === "all"
+            ? files.length
+            : files.filter((file) => fileCategory(file) === item.id).length;
+        const isActive = active === item.id;
+
+        return (
+          <button
+            className={`flex h-10 w-full items-center justify-between rounded-sm px-3 text-left text-sm transition ${
+              isActive ? "bg-[#eaf1ec] font-semibold text-[#173f35]" : "text-[#36413b] hover:bg-[#f7f8f3]"
+            }`}
+            key={item.id}
+            onClick={() => onSelect(item.id)}
+            type="button"
+          >
+            <span className="inline-flex min-w-0 items-center gap-2">
+              <Folder size={15} />
+              <span className="truncate">{item.label}</span>
+            </span>
+            <span className="font-mono text-xs text-[#66736c]">{count}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function FileBrowserTable({
   files,
   selectedId,
   onSelect,
@@ -235,50 +346,63 @@ function FileList({
   onSelect: (id: string) => void;
 }) {
   if (files.length === 0) {
-    return <div className="p-4 text-sm text-[#66736c]">Upload a document to start reviewing it.</div>;
+    return <div className="p-6 text-sm text-[#66736c]">No files match this view.</div>;
   }
 
   return (
-    <div className="max-h-[calc(100vh-230px)] overflow-y-auto">
-      {files.map((file) => {
-        const Icon = fileIcon(file);
-        const isSelected = selectedId === file.id;
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[700px] border-collapse text-sm">
+        <thead>
+          <tr className="border-b border-[#edf0e9] text-left text-xs uppercase tracking-[0.12em] text-[#66736c]">
+            <th className="px-4 py-3 font-semibold">Name</th>
+            <th className="px-4 py-3 font-semibold">Type</th>
+            <th className="px-4 py-3 font-semibold">Size</th>
+            <th className="px-4 py-3 font-semibold">Modified</th>
+            <th className="px-4 py-3 text-right font-semibold">Comments</th>
+          </tr>
+        </thead>
+        <tbody>
+          {files.map((file) => {
+            const Icon = fileIcon(file);
+            const isSelected = selectedId === file.id;
 
-        return (
-          <button
-            key={file.id}
-            className={`grid w-full grid-cols-[32px_1fr] gap-3 border-b border-[#edf0e9] px-4 py-3 text-left transition ${
-              isSelected ? "bg-[#eaf1ec]" : "hover:bg-[#f7f8f3]"
-            }`}
-            onClick={() => onSelect(file.id)}
-            type="button"
-          >
-            <span className="mt-1 flex h-8 w-8 items-center justify-center rounded-sm bg-[#dfe7e3] text-[#173f35]">
-              <Icon size={17} />
-            </span>
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-semibold text-[#1d2328]">{file.name}</span>
-              <span className="mt-1 flex items-center gap-2 text-xs text-[#66736c]">
-                <span>{file.extension.toUpperCase()}</span>
-                <span>{formatBytes(file.size)}</span>
-                <span className="inline-flex items-center gap-1">
-                  <MessageSquare size={13} />
-                  {file.comments.length}
-                </span>
-              </span>
-            </span>
-          </button>
-        );
-      })}
+            return (
+              <tr
+                className={`cursor-pointer border-b border-[#edf0e9] transition ${
+                  isSelected ? "bg-[#eaf1ec]" : "hover:bg-[#f7f8f3]"
+                }`}
+                key={file.id}
+                onClick={() => onSelect(file.id)}
+              >
+                <td className="px-4 py-3">
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm bg-[#dfe7e3] text-[#173f35]">
+                      <Icon size={17} />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate font-semibold text-[#1d2328]">{file.name}</span>
+                      <span className="mt-0.5 block text-xs text-[#66736c]">{fileCategory(file)}</span>
+                    </span>
+                  </span>
+                </td>
+                <td className="px-4 py-3 font-mono text-xs text-[#66736c]">{file.extension.toUpperCase()}</td>
+                <td className="px-4 py-3 text-[#36413b]">{formatBytes(file.size)}</td>
+                <td className="px-4 py-3 font-mono text-xs text-[#66736c]">{formatTimestamp(file.uploadedAt)}</td>
+                <td className="px-4 py-3 text-right text-[#36413b]">{file.comments.length}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
 
-function FileWorkspace({ file, onCommentSaved }: { file: StoredFile; onCommentSaved: () => Promise<void> }) {
+function FileInspector({ file, onCommentSaved }: { file: StoredFile; onCommentSaved: () => Promise<void> }) {
   return (
-    <div className="grid min-h-[720px] lg:grid-cols-[minmax(0,1fr)_330px]">
-      <div className="min-w-0 border-b border-[#e4e7df] lg:border-r lg:border-b-0">
-        <div className="flex min-h-16 flex-col gap-2 border-b border-[#e4e7df] px-4 py-3 md:flex-row md:items-center md:justify-between">
+    <div className="flex min-h-[720px] flex-col">
+      <div className="border-b border-[#e4e7df]">
+        <div className="flex flex-col gap-3 px-4 py-4">
           <div className="min-w-0">
             <h2 className="truncate text-lg font-semibold text-[#111816]">{file.name}</h2>
             <p className="mt-1 text-xs text-[#66736c]">
@@ -295,14 +419,16 @@ function FileWorkspace({ file, onCommentSaved }: { file: StoredFile; onCommentSa
             Open original
           </a>
         </div>
-        <DocumentPreview key={file.id} file={file} />
+      </div>
+      <div className="max-h-[360px] overflow-auto border-b border-[#e4e7df]">
+        <DocumentPreview key={file.id} file={file} compact />
       </div>
       <CommentPanel file={file} onCommentSaved={onCommentSaved} />
     </div>
   );
 }
 
-function DocumentPreview({ file }: { file: StoredFile }) {
+function DocumentPreview({ file, compact = false }: { file: StoredFile; compact?: boolean }) {
   const [content, setContent] = useState<string>("");
   const [status, setStatus] = useState<string>("Loading preview...");
 
@@ -350,12 +476,12 @@ function DocumentPreview({ file }: { file: StoredFile }) {
       );
     }
 
-    return <PreviewMessage message="PowerPoint previews need a public Vercel Blob URL. Local files can still be opened from the original link." />;
+    return <PreviewMessage compact={compact} message="PowerPoint previews need a public Vercel Blob URL. Local files can still be opened from the original link." />;
   }
 
   if (file.type.startsWith("image/")) {
     return (
-      <div className="flex min-h-[650px] items-center justify-center bg-[#f8faf7] p-6">
+      <div className={`flex items-center justify-center bg-[#f8faf7] p-6 ${compact ? "min-h-[320px]" : "min-h-[650px]"}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className="max-h-[610px] max-w-full border border-[#e4e7df] bg-white object-contain" src={file.url} alt={file.name} />
       </div>
@@ -363,36 +489,36 @@ function DocumentPreview({ file }: { file: StoredFile }) {
   }
 
   if (file.type === "application/pdf") {
-    return <iframe className="h-[650px] w-full bg-[#f8faf7]" title={file.name} src={file.url} />;
+    return <iframe className={`${compact ? "h-[320px]" : "h-[650px]"} w-full bg-[#f8faf7]`} title={file.name} src={file.url} />;
   }
 
   if (!content) {
-    return <PreviewMessage message={status} />;
+    return <PreviewMessage compact={compact} message={status} />;
   }
 
   if (officeDocExtensions.has(file.extension)) {
     return (
       <article
-        className="document-body px-6 py-5"
+        className={`document-body ${compact ? "px-4 py-4 text-sm" : "px-6 py-5"}`}
         dangerouslySetInnerHTML={{ __html: content }}
       />
     );
   }
 
   if (file.extension === "json") {
-    return <pre className="m-0 min-h-[650px] overflow-auto bg-[#f8faf7] p-5 font-mono text-sm text-[#24302a]">{content}</pre>;
+    return <pre className={`m-0 overflow-auto bg-[#f8faf7] p-5 font-mono text-sm text-[#24302a] ${compact ? "min-h-[320px]" : "min-h-[650px]"}`}>{content}</pre>;
   }
 
   return (
-    <article className="document-body px-6 py-5">
+    <article className={`document-body ${compact ? "px-4 py-4 text-sm" : "px-6 py-5"}`}>
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
     </article>
   );
 }
 
-function PreviewMessage({ message }: { message: string }) {
+function PreviewMessage({ message, compact = false }: { message: string; compact?: boolean }) {
   return (
-    <div className="flex min-h-[650px] items-center justify-center bg-[#f8faf7] px-6 text-center text-sm text-[#66736c]">
+    <div className={`flex items-center justify-center bg-[#f8faf7] px-6 text-center text-sm text-[#66736c] ${compact ? "min-h-[320px]" : "min-h-[650px]"}`}>
       {message}
     </div>
   );
