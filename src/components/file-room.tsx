@@ -7,6 +7,8 @@ import {
   FileText,
   Folder,
   Image as ImageIcon,
+  Maximize2,
+  X,
   Presentation,
   Search,
   Upload,
@@ -79,6 +81,7 @@ export function FileRoom({
   const [selectedId, setSelectedId] = useState<string | null>(initialFiles[0]?.id ?? null);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<FileCategory>("all");
+  const [fullScreenId, setFullScreenId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const refreshSequence = useRef(0);
@@ -100,6 +103,11 @@ export function FileRoom({
       return matchesCategory && matchesQuery;
     });
   }, [category, files, query]);
+
+  const fullScreenFile = useMemo(
+    () => files.find((file) => file.id === fullScreenId) ?? null,
+    [files, fullScreenId],
+  );
 
   const loadFiles = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     const sequence = ++refreshSequence.current;
@@ -154,6 +162,17 @@ export function FileRoom({
       document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
   }, [loadFiles]);
+
+  useEffect(() => {
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setFullScreenId(null);
+      }
+    }
+
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, []);
 
   async function uploadFile(formData: FormData) {
     setIsUploading(true);
@@ -245,18 +264,30 @@ export function FileRoom({
           <FileBrowserTable
             files={visibleFiles}
             selectedId={selectedFile?.id ?? null}
+            onOpen={setFullScreenId}
             onSelect={setSelectedId}
           />
         </section>
 
         <aside className="min-h-[720px] border border-[#d9ded6] bg-white">
           {selectedFile ? (
-            <FileInspector file={selectedFile} onCommentSaved={() => loadFiles()} />
+            <FileInspector
+              file={selectedFile}
+              onCommentSaved={() => loadFiles()}
+              onOpen={() => setFullScreenId(selectedFile.id)}
+            />
           ) : (
             <EmptyWorkspace />
           )}
         </aside>
       </main>
+      {fullScreenFile ? (
+        <FullScreenViewer
+          file={fullScreenFile}
+          onClose={() => setFullScreenId(null)}
+          onCommentSaved={() => loadFiles()}
+        />
+      ) : null}
     </div>
   );
 }
@@ -339,10 +370,12 @@ function FolderRail({
 function FileBrowserTable({
   files,
   selectedId,
+  onOpen,
   onSelect,
 }: {
   files: StoredFile[];
   selectedId: string | null;
+  onOpen: (id: string) => void;
   onSelect: (id: string) => void;
 }) {
   if (files.length === 0) {
@@ -372,6 +405,7 @@ function FileBrowserTable({
                   isSelected ? "bg-[#eaf1ec]" : "hover:bg-[#f7f8f3]"
                 }`}
                 key={file.id}
+                onDoubleClick={() => onOpen(file.id)}
                 onClick={() => onSelect(file.id)}
               >
                 <td className="px-4 py-3">
@@ -398,7 +432,15 @@ function FileBrowserTable({
   );
 }
 
-function FileInspector({ file, onCommentSaved }: { file: StoredFile; onCommentSaved: () => Promise<void> }) {
+function FileInspector({
+  file,
+  onCommentSaved,
+  onOpen,
+}: {
+  file: StoredFile;
+  onCommentSaved: () => Promise<void>;
+  onOpen: () => void;
+}) {
   return (
     <div className="flex min-h-[720px] flex-col">
       <div className="border-b border-[#e4e7df]">
@@ -409,15 +451,14 @@ function FileInspector({ file, onCommentSaved }: { file: StoredFile; onCommentSa
               Uploaded {formatTimestamp(file.uploadedAt)} UTC - {formatBytes(file.size)}
             </p>
           </div>
-          <a
+          <button
             className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-sm border border-[#cfd7cf] px-3 text-sm font-semibold text-[#173f35] transition hover:bg-[#f1f5ef]"
-            href={file.url}
-            target="_blank"
-            rel="noreferrer"
+            onClick={onOpen}
+            type="button"
           >
-            <Download size={16} />
-            Open original
-          </a>
+            <Maximize2 size={16} />
+            Open full screen
+          </button>
         </div>
       </div>
       <div className="max-h-[360px] overflow-auto border-b border-[#e4e7df]">
@@ -428,7 +469,66 @@ function FileInspector({ file, onCommentSaved }: { file: StoredFile; onCommentSa
   );
 }
 
-function DocumentPreview({ file, compact = false }: { file: StoredFile; compact?: boolean }) {
+function FullScreenViewer({
+  file,
+  onClose,
+  onCommentSaved,
+}: {
+  file: StoredFile;
+  onClose: () => void;
+  onCommentSaved: () => Promise<void>;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#f7f7f2] text-[#1d2328]">
+      <header className="flex min-h-16 flex-col gap-3 border-b border-[#d9ded6] bg-white px-4 py-3 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#597368]">File preview</p>
+          <h2 className="truncate text-xl font-semibold text-[#111816]">{file.name}</h2>
+          <p className="mt-1 text-xs text-[#66736c]">
+            {file.extension.toUpperCase()} - {formatBytes(file.size)} - uploaded {formatTimestamp(file.uploadedAt)} UTC
+          </p>
+        </div>
+        <div className="flex shrink-0 gap-2">
+          <a
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-sm border border-[#cfd7cf] px-3 text-sm font-semibold text-[#173f35] transition hover:bg-[#f1f5ef]"
+            href={file.url}
+            rel="noreferrer"
+            target="_blank"
+          >
+            <Download size={16} />
+            Original
+          </a>
+          <button
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-sm bg-[#173f35] px-3 text-sm font-semibold text-white transition hover:bg-[#0f2d26]"
+            onClick={onClose}
+            type="button"
+          >
+            <X size={16} />
+            Close
+          </button>
+        </div>
+      </header>
+      <main className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <section className="min-h-0 overflow-auto bg-white">
+          <DocumentPreview key={file.id} file={file} fullScreen />
+        </section>
+        <aside className="min-h-0 border-l border-[#d9ded6] bg-white">
+          <CommentPanel file={file} onCommentSaved={onCommentSaved} />
+        </aside>
+      </main>
+    </div>
+  );
+}
+
+function DocumentPreview({
+  file,
+  compact = false,
+  fullScreen = false,
+}: {
+  file: StoredFile;
+  compact?: boolean;
+  fullScreen?: boolean;
+}) {
   const [content, setContent] = useState<string>("");
   const [status, setStatus] = useState<string>("Loading preview...");
 
@@ -469,7 +569,7 @@ function DocumentPreview({ file, compact = false }: { file: StoredFile; compact?
     if (file.url.startsWith("http")) {
       return (
         <iframe
-          className="h-[650px] w-full bg-[#f8faf7]"
+          className={`${fullScreen ? "h-[calc(100vh-5rem)]" : "h-[650px]"} w-full bg-[#f8faf7]`}
           title={file.name}
           src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(file.url)}`}
         />
@@ -481,15 +581,15 @@ function DocumentPreview({ file, compact = false }: { file: StoredFile; compact?
 
   if (file.type.startsWith("image/")) {
     return (
-      <div className={`flex items-center justify-center bg-[#f8faf7] p-6 ${compact ? "min-h-[320px]" : "min-h-[650px]"}`}>
+      <div className={`flex items-center justify-center bg-[#f8faf7] p-6 ${fullScreen ? "min-h-[calc(100vh-5rem)]" : compact ? "min-h-[320px]" : "min-h-[650px]"}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className="max-h-[610px] max-w-full border border-[#e4e7df] bg-white object-contain" src={file.url} alt={file.name} />
+        <img className={`${fullScreen ? "max-h-[calc(100vh-8rem)]" : "max-h-[610px]"} max-w-full border border-[#e4e7df] bg-white object-contain`} src={file.url} alt={file.name} />
       </div>
     );
   }
 
   if (file.type === "application/pdf") {
-    return <iframe className={`${compact ? "h-[320px]" : "h-[650px]"} w-full bg-[#f8faf7]`} title={file.name} src={file.url} />;
+    return <iframe className={`${fullScreen ? "h-[calc(100vh-5rem)]" : compact ? "h-[320px]" : "h-[650px]"} w-full bg-[#f8faf7]`} title={file.name} src={file.url} />;
   }
 
   if (!content) {
@@ -499,18 +599,18 @@ function DocumentPreview({ file, compact = false }: { file: StoredFile; compact?
   if (officeDocExtensions.has(file.extension)) {
     return (
       <article
-        className={`document-body ${compact ? "px-4 py-4 text-sm" : "px-6 py-5"}`}
+        className={`document-body ${fullScreen ? "mx-auto max-w-5xl px-10 py-8" : compact ? "px-4 py-4 text-sm" : "px-6 py-5"}`}
         dangerouslySetInnerHTML={{ __html: content }}
       />
     );
   }
 
   if (file.extension === "json") {
-    return <pre className={`m-0 overflow-auto bg-[#f8faf7] p-5 font-mono text-sm text-[#24302a] ${compact ? "min-h-[320px]" : "min-h-[650px]"}`}>{content}</pre>;
+    return <pre className={`m-0 overflow-auto bg-[#f8faf7] p-5 font-mono text-sm text-[#24302a] ${fullScreen ? "min-h-[calc(100vh-5rem)]" : compact ? "min-h-[320px]" : "min-h-[650px]"}`}>{content}</pre>;
   }
 
   return (
-    <article className={`document-body ${compact ? "px-4 py-4 text-sm" : "px-6 py-5"}`}>
+    <article className={`document-body ${fullScreen ? "mx-auto max-w-5xl px-10 py-8" : compact ? "px-4 py-4 text-sm" : "px-6 py-5"}`}>
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
     </article>
   );
