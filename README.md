@@ -76,7 +76,7 @@ npx.cmd vercel deploy --prod
 
 ## Implementation Notes
 
-- File metadata, comments, users, and invites are stored in private Blob-backed JSON indexes.
+- File metadata, comments, users, and invites are encrypted with `AUTH_SECRET` before being stored in Blob-backed JSON indexes. This works with public Vercel Blob stores.
 - Uploaded file content is stored under `file-room/uploads/`.
 - DOCX preview uses `mammoth` in the browser and is read-only.
 - Markdown preview uses `react-markdown` with GitHub-flavored Markdown.
