@@ -1,4 +1,4 @@
-# Vercel File Room
+# File Vault
 
 A read-only file storage and review web app built with Next.js for Vercel.
 
@@ -47,7 +47,7 @@ OWNER_EMAIL=samac1234qwerty@gmail.com
 OWNER_SETUP_CODE=replace-with-a-private-one-time-setup-code
 BREVO_API_KEY=replace-with-your-brevo-api-key
 BREVO_SENDER_EMAIL=verified-sender@example.com
-BREVO_SENDER_NAME=FileVault
+BREVO_SENDER_NAME=File Vault
 NEXT_PUBLIC_APP_URL=https://your-vercel-domain.vercel.app
 ```
 

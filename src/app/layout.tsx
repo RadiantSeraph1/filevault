@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Vercel File Room",
+  title: "File Vault",
   description: "Read-only document storage with previews and comments.",
 };
 

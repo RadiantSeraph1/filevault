@@ -15,7 +15,7 @@ export async function sendInviteEmail(input: { email: string; token: string }) {
   }
 
   const senderEmail = process.env.BREVO_SENDER_EMAIL;
-  const senderName = process.env.BREVO_SENDER_NAME ?? "FileVault";
+  const senderName = process.env.BREVO_SENDER_NAME ?? "File Vault";
 
   if (!senderEmail) {
     throw new Error("BREVO_SENDER_EMAIL is not configured.");
@@ -32,14 +32,14 @@ export async function sendInviteEmail(input: { email: string; token: string }) {
     body: JSON.stringify({
       sender: { email: senderEmail, name: senderName },
       to: [{ email: input.email }],
-      subject: "Your FileVault access invite",
+      subject: "Your File Vault access invite",
       htmlContent: `
-        <p>You have been invited to FileVault.</p>
+        <p>You have been invited to File Vault.</p>
         <p>Use this secure link to set your password:</p>
         <p><a href="${setupUrl}">${setupUrl}</a></p>
         <p>This invite expires in 7 days.</p>
       `,
-      textContent: `You have been invited to FileVault. Set your password here: ${setupUrl}`,
+      textContent: `You have been invited to File Vault. Set your password here: ${setupUrl}`,
     }),
   });
 

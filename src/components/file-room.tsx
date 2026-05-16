@@ -89,7 +89,7 @@ export function FileRoom({
       <header className="border-b border-[#d9ded6] bg-[#fbfbf8]">
         <div className="mx-auto flex max-w-7xl flex-col gap-5 px-5 py-6 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-sm font-medium uppercase tracking-[0.16em] text-[#597368]">Vercel file room</p>
+            <p className="text-sm font-medium uppercase tracking-[0.16em] text-[#597368]">File Vault</p>
             <h1 className="mt-2 text-3xl font-semibold tracking-normal text-[#111816] md:text-4xl">
               Read-only document storage
             </h1>
